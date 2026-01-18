@@ -1,3 +1,4 @@
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'model';
@@ -38,7 +39,8 @@ export interface AFKModule {
 
 export interface MacroAction {
   id: string;
-  type: 'MOVE' | 'CLICK';
+  type: 'MOVE' | 'CLICK' | 'KEY';
+  key?: string; // For keyboard events (e.g., "SPACE", "E")
   x: number;
   y: number;
   delay: number;

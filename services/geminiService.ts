@@ -10,60 +10,71 @@ const getClient = () => {
 };
 
 /**
- * Sends a text message to Gemini (Chat).
- * Supports generating dynamic modules via JSON output.
+ * Sends a message to Gemini.
+ * Supports text-only OR text + image (multimodal).
  */
 export const sendChatMessage = async (
-  history: { role: string; parts: { text: string }[] }[],
-  newMessage: string
+  history: { role: string; parts: { text?: string; inlineData?: { mimeType: string; data: string } }[] }[],
+  newMessage: string,
+  base64Image?: string
 ): Promise<string> => {
   const ai = getClient();
-  // Switched to Flash for speed as requested for the chat agent
-  const model = "gemini-3-flash-preview";
+  
+  // Use 2.5-flash-image if we have visual data, otherwise 3-flash for pure text speed
+  const model = base64Image ? "gemini-2.5-flash-image" : "gemini-3-flash-preview";
 
   const systemPrompt = `
-    You are "Rivals Tactician", an AI coding assistant for a Game Automation Tool.
+    You are "Rivals Tactician", an AI assistant for a Game Automation Tool.
     
-    Your goal is to help the user create new "AFK Modules" or discuss strategy.
-    
-    CRITICAL INSTRUCTION FOR CREATING FEATURES:
-    If the user asks to create a feature, script, or function (e.g., "Make a jump script", "Press E every 10s", "Anti-AFK strafe"), 
-    you MUST output a JSON block at the end of your message describing the module.
-    
-    The JSON format must be:
-    \`\`\`json
-    {
-      "type": "NEW_MODULE",
-      "name": "Short Name (e.g., Auto-Strafe)",
-      "description": "Short description of what it does",
-      "key": "Key to press (e.g., SPACE, E, W, CTRL)",
-      "interval": 5000, // Time in milliseconds
-      "actionLogMessage": "Log message (e.g., Strafing Left)"
-    }
-    \`\`\`
-    
-    If just chatting about strategy, do not include the JSON.
-    Keep text responses concise and "hacker-like".
+    CAPABILITIES:
+    1. You can see the game screen if the user attaches an image.
+    2. You help identify objects (enemies, mountains, UI elements) coordinates.
+    3. You help create macros.
+
+    If the user sends an image, analyze the UI elements, player position, or specific map landmarks they ask about.
+    Keep answers concise and "gamer-like".
   `;
+
+  // Construct current turn parts
+  const currentParts: any[] = [{ text: newMessage }];
+  
+  if (base64Image) {
+      currentParts.unshift({
+          inlineData: {
+              mimeType: "image/png",
+              data: base64Image
+          }
+      });
+  }
+
+  // Filter history to ensure it matches the format expected by the SDK
+  // Note: For simple chat in this demo, we might truncate history if switching models to avoid compatibility issues,
+  // but usually Flash handles it well.
+  const formattedHistory = history.map(h => ({
+      role: h.role,
+      parts: h.parts
+  }));
+
+  const contents = [
+      { role: 'user', parts: [{ text: systemPrompt }] },
+      ...formattedHistory,
+      { role: 'user', parts: currentParts }
+  ];
 
   const response: GenerateContentResponse = await ai.models.generateContent({
     model,
-    contents: [
-      { role: 'user', parts: [{ text: systemPrompt }] }, // Inject system prompt as first turn context or system instruction
-      ...history.map(h => ({ role: h.role, parts: h.parts })),
-      { role: 'user', parts: [{ text: newMessage }] }
-    ]
+    contents
   });
 
   return response.text || "Systems unresponsive. Try again.";
 };
 
 /**
- * Analyzes an image (Screenshot) using Gemini Vision.
+ * Legacy Analysis (kept for the Analyzer component if needed)
  */
 export const analyzeImage = async (base64Data: string, mimeType: string): Promise<string> => {
   const ai = getClient();
-  const model = "gemini-3-pro-preview";
+  const model = "gemini-2.5-flash-image";
 
   const response: GenerateContentResponse = await ai.models.generateContent({
     model,
@@ -76,38 +87,16 @@ export const analyzeImage = async (base64Data: string, mimeType: string): Promis
           }
         },
         {
-          text: "Analyze this Marvel Rivals screenshot. Identify the current game state (Lobby, In-Game, Scoreboard, Victory/Defeat). If in-game, suggest a quick tactical tip based on the visible heroes or map position. If it's a menu, describe what is selected."
+          text: "Analyze this Marvel Rivals screenshot. Identify the current game state."
         }
       ]
     }
   });
 
-  return response.text || "Analysis complete. No significant data found.";
+  return response.text || "Analysis complete.";
 };
 
-/**
- * Analyzes a video clip.
- */
 export const analyzeVideo = async (base64Data: string, mimeType: string): Promise<string> => {
-  const ai = getClient();
-  const model = "gemini-3-pro-preview"; 
-
-  const response: GenerateContentResponse = await ai.models.generateContent({
-    model,
-    contents: {
-      parts: [
-        {
-          inlineData: {
-            mimeType,
-            data: base64Data
-          }
-        },
-        {
-          text: "Analyze this gameplay clip from Marvel Rivals. Describe the player's movement patterns. Are they strafing effectively? detecting any AFK behavior? Provide a critique on the playstyle shown."
-        }
-      ]
-    }
-  });
-
-  return response.text || "Video analysis complete.";
+    // Placeholder for video analysis logic
+    return "Video analysis requires different handling.";
 };
