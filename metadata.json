@@ -1,0 +1,8 @@
+{
+  "name": "AUONRIV2 AFK MOD",
+  "description": "A futuristic command center for Rivals AFK management, featuring AI-powered gameplay analysis, strategy chat, and status monitoring.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
