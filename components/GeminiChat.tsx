@@ -106,7 +106,7 @@ export const GeminiChat: React.FC<GeminiChatProps> = ({ onNewModule }) => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] bg-slate-800/30 rounded-xl border border-slate-700 backdrop-blur-md overflow-hidden">
+    <div className="flex flex-col h-[600px] bg-slate-800/30 rounded-xl border border-slate-700 backdrop-blur-md overflow-hidden shadow-lg">
       {/* Header */}
       <div className="bg-slate-900/50 p-4 border-b border-slate-700 flex items-center gap-2">
         <Sparkles className="text-purple-400" size={20} />
